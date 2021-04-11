@@ -1,12 +1,16 @@
 {
   "name": "redis-skinny-wrapper",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Skinny wrapper for Redis",
   "main": "index.js",
   "scripts": {
     "test": "nyc ava"
   },
-  "keywords": ["redis", "ava", "node"],
+  "keywords": [
+    "redis",
+    "ava",
+    "node"
+  ],
   "author": "Villalobos <diegovillalobos397@gmail.com>",
   "license": "MIT",
   "dependencies": {
