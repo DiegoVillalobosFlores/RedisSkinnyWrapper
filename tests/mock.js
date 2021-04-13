@@ -40,6 +40,4 @@ test('stream', async t => {
 
 	t.is(rangeResult.length, 1);
 	t.is(rangeResult[0]._messageId, 0);
-
-	console.log(rangeResult);
 });
