@@ -58,6 +58,11 @@ test.serial('crud', async t => {
 	const invalidScore = await sortedSet.score('test', 'invalid');
 
 	t.is(invalidScore,null);
+
+	const withScores = await sortedSet.range('test', true);
+
+	t.is(withScores[0], 'diego - 1');
+	t.is(withScores[1], '1')
 });
 
 test.serial('pipeline', async t => {

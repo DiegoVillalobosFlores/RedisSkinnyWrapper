@@ -24,8 +24,10 @@ class SortedSet {
 		return this.redis.zadd(key, weight, value);
 	}
 
-	range(key, begin = 0, end = -1){
-		return this.redis.zrange(key, begin, end);
+	async range(key, withScores = false, begin = 0, end = -1){
+	  const query = [key, begin, end];
+	  if (withScores) query.push("WITHSCORES");
+		return this.redis.zrange(query);
 	}
 
 	revRange(key, begin = 0, end = -1){
