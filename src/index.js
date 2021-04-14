@@ -5,9 +5,9 @@ import SortedSet from './sortedSet';
 import Stream from './stream';
 
 export default {
-	Base,
-	Geo,
-	Hash,
-	SortedSet,
-	Stream
+  Base,
+  Geo,
+  Hash,
+  SortedSet,
+  Stream,
 };

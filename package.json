@@ -4,7 +4,8 @@
   "description": "Skinny wrapper for Redis",
   "main": "index.js",
   "scripts": {
-    "test": "nyc ava"
+    "test": "nyc ava",
+    "lint": "yarn eslint --fix ."
   },
   "keywords": [
     "redis",
@@ -24,6 +25,8 @@
     "ava": "3.15.0",
     "dotenv": "8.2.0",
     "eslint": "7.24.0",
+    "eslint-config-airbnb-base": "14.2.1",
+    "eslint-plugin-import": "2.22.1",
     "nyc": "15.1.0"
   },
   "ava": {
