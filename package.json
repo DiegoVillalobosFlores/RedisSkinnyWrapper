@@ -1,6 +1,6 @@
 {
   "name": "redis-skinny-wrapper",
-  "version": "5.0.0",
+  "version": "5.0.1",
   "description": "Skinny wrapper for Redis",
   "main": "index.js",
   "scripts": {
