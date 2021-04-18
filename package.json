@@ -35,6 +35,9 @@
       "esm"
     ]
   },
-  "repository": "https://github.com/DiegoVillalobosFlores/RedisSkinnyWrapper.git",
-  "private": false
+  "repository": "git://github.com/DiegoVillalobosFlores/RedisSkinnyWrapper.git",
+  "private": false,
+  "publishConfig": {
+    "registry":"https://npm.pkg.github.com"
+  }
 }
