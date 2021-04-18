@@ -40,5 +40,3 @@ jobs:
     - run: yarn
     - run: yarn lint
     - run: yarn test
-      env:
-        REDIS_HOST: 0.0.0.0
