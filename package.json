@@ -1,6 +1,6 @@
 {
   "name": "redis-skinny-wrapper",
-  "version": "5.1.1",
+  "version": "5.1.3",
   "description": "Skinny wrapper for Redis",
   "main": "index.js",
   "scripts": {
@@ -38,6 +38,6 @@
   "repository": "git://github.com/DiegoVillalobosFlores/RedisSkinnyWrapper.git",
   "private": false,
   "publishConfig": {
-    "registry":"https://npm.pkg.github.com"
+    "registry": "https://npm.pkg.github.com"
   }
 }
