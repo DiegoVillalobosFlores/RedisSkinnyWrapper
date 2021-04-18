@@ -29,7 +29,7 @@ test.after(async (t) => {
 test.serial('crud', async (t) => {
   const { sortedSet } = t.context;
 
-  t.is(sortedSet.POSTFIX, 'ZSET');
+  t.is(sortedSet.getPostFix(), ':ZSET');
 
   await sortedSet.add('test', 'diego', 2);
 

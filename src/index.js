@@ -3,6 +3,7 @@ import Geo from './geo';
 import Hash from './hash';
 import SortedSet from './sortedSet';
 import Stream from './stream';
+import Automatic from './automatic';
 
 export default {
   Base,
@@ -10,4 +11,5 @@ export default {
   Hash,
   SortedSet,
   Stream,
+  Automatic,
 };

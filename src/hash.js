@@ -5,6 +5,10 @@ class Hash {
     this.CONNECTOR = ':';
   }
 
+  getPostFix() {
+    return `${this.CONNECTOR}${this.POSTFIX}`;
+  }
+
   add(key, fields) {
     return this.redis.hset(key, fields);
   }

@@ -26,10 +26,10 @@ test.afterEach(async (t) => {
   await client.del(keys);
 });
 
-test.serial('hash', async (t) => {
+test.serial('crud', async (t) => {
   const { hash } = t.context;
 
-  t.is(hash.POSTFIX, 'HASH');
+  t.is(hash.getPostFix(), ':HASH');
 
   await hash.add('schedule.today', [
     120, 'reservation1',

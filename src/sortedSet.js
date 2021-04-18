@@ -20,6 +20,10 @@ class SortedSet {
     this.redis = this.client.multi();
   }
 
+  getPostFix() {
+    return `${this.CONNECTOR}${this.POSTFIX}`;
+  }
+
   async exec(format = true) {
     if (!this.isMulti) return false;
     const response = await this.redis.exec();
