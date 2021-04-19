@@ -36,8 +36,5 @@
     ]
   },
   "repository": "git://github.com/DiegoVillalobosFlores/RedisSkinnyWrapper.git",
-  "private": false,
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
-  }
+  "private": false
 }
