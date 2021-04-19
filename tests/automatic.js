@@ -11,7 +11,7 @@ test.before((t) => {
   const redis = new IOredis({
     port: process.env.REDIS_PORT,
     host: process.env.REDIS_HOST,
-    db: 1,
+    db: process.env.REDIS_DB_NUMBER || 1,
   });
 
   const automatic = new RedisWrapper.Automatic(redis, undefined, true);
@@ -27,6 +27,11 @@ test.before((t) => {
     'test:HASH',
     'test:REPOS:ZSET',
     'invalidType:HASH',
+    'test:CATEGORIES:0:QUESTIONS:0:COMPLEXNESTEDARRAY:0:LOL:ZSET',
+    'test:CATEGORIES:0:QUESTIONS:0:COMPLEXNESTEDARRAY:1:HASH',
+    'test:CATEGORIES:0:HASH',
+    'test:CATEGORIES:0:QUESTIONS:0:HASH',
+    'test:CATEGORIES:0:QUESTIONS:0:ANSWERS:ZSET',
   ];
 });
 
@@ -50,7 +55,7 @@ test.serial('crud no schema', async (t) => {
   t.is(noValues.message, 'The second parameter "value" must be of type "object", got: string');
 
   const unsupportedBooleanArray = await t.throwsAsync(automatic.add('booleanArray', { array: [true, false, true] }));
-  t.is(unsupportedBooleanArray.message, 'Currently only arrays of strings, numbers and {value,score} objects are supported for field: array');
+  t.is(unsupportedBooleanArray.message, 'Currently only arrays of strings, numbers, {value,score} and objects are supported for field: array');
 
   const functionType = await t.throwsAsync(automatic.add('function', { fun: () => true }));
   t.is(functionType.message, 'Invalid value type for field: fun, function');
@@ -92,6 +97,29 @@ test.serial('crud no schema', async (t) => {
         wrapper: false,
       },
     },
+    categories: [
+      {
+        name: 'cat1',
+        questions: [
+          {
+            title: 'first question',
+            complexNestedArray: [
+              {
+                lol: ['true', 'false'],
+              },
+              {
+                differentSchema: 1,
+                complexity: 133373.3,
+              },
+            ],
+            answers: [
+              { value: 'croc', score: 4 },
+              { value: 'alligator', score: 0 },
+            ],
+          },
+        ],
+      },
+    ],
   });
 
   t.is(result.every((value) => value === 1), true);
@@ -110,6 +138,11 @@ test.serial('crud no schema', async (t) => {
   t.is(schema.dbs.redis.wrapper, 'boolean');
   t.is(schema.dbs.mongo.status, 'string');
   t.is(schema.dbs.mongo.wrapper, 'boolean');
+  t.is(schema.categories[0].name, 'string');
+  t.is(schema.categories[0].questions[0].title, 'string');
+  t.is(schema.categories[0].questions[0].complexNestedArray[0].lol, 'array');
+  t.is(schema.categories[0].questions[0].complexNestedArray[1].differentSchema, 'int');
+  t.is(schema.categories[0].questions[0].complexNestedArray[1].complexity, 'float');
 
   const missingType = await t.throwsAsync(automatic.add('missingType', { type: false }));
   t.is(missingType.message, 'Field type is not in the schema or its type is different, expected: undefined, got: boolean');
@@ -136,6 +169,16 @@ test.serial('crud no schema', async (t) => {
   t.is(getterResult.dbs.redis.wrapper, true);
   t.is(getterResult.dbs.mongo.status, 'expired');
   t.is(getterResult.dbs.mongo.wrapper, false);
+  t.is(getterResult.categories[0].name, 'cat1');
+  t.is(getterResult.categories[0].questions[0].title, 'first question');
+  t.is(getterResult.categories[0].questions[0].answers[0].value, 'alligator');
+  t.is(getterResult.categories[0].questions[0].answers[0].score, 0);
+  t.is(getterResult.categories[0].questions[0].answers[1].value, 'croc');
+  t.is(getterResult.categories[0].questions[0].answers[1].score, 4);
+  t.is(getterResult.categories[0].questions[0].complexNestedArray[0].lol[0], 'true');
+  t.is(getterResult.categories[0].questions[0].complexNestedArray[0].lol[1], 'false');
+  t.is(getterResult.categories[0].questions[0].complexNestedArray[1].differentSchema, 1);
+  t.is(getterResult.categories[0].questions[0].complexNestedArray[1].complexity, 133373.3);
 
   await automatic.add('test', {
     name: 'test', dbs: { sql: 'yes', mongo: { wrapper: true } }, dates: [2022], metrics: [{ value: 'metric11', score: 21 }],
@@ -152,9 +195,11 @@ test.serial('crud no schema', async (t) => {
   t.is(updatedResult.metrics[1].value, 'metric11');
   t.is(updatedResult.metrics[1].score, 21);
 
-  const newSchemaResult = automatic.setSchema({
+  const newSchemaResult = automatic.generateSchema({
     age: '1', dbs: { sql: 2 }, metrics: ['metric11'], newValue: { value: { new: true } },
   });
+
+  automatic.setSchema(newSchemaResult);
 
   t.is(newSchemaResult.age, 'string');
   t.is(newSchemaResult.dbs.sql, 'int');
@@ -168,7 +213,7 @@ test.serial('crud no schema', async (t) => {
   t.is(typeof updatedSchemaResult.newValue.value, 'object');
 });
 
-test.serial('crud with schema', (t) => {
+test.serial('crud with schema', async (t) => {
   const { client } = t.context;
   const automatic = new RedisWrapper.Automatic(client, { name: 'string', length: 'float' }, false);
 
@@ -176,4 +221,9 @@ test.serial('crud with schema', (t) => {
 
   t.is(schemaResult.name, 'string');
   t.is(schemaResult.length, 'float');
+
+  await automatic.add('test', { name: 'test', length: 4.44 });
+
+  const invalidSchema = t.throws(() => automatic.setSchema());
+  t.is(invalidSchema.message, 'Invalid Schema');
 });

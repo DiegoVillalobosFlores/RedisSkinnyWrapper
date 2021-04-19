@@ -29,6 +29,9 @@ test.after(async (t) => {
 test.serial('crud', async (t) => {
   const { stream } = t.context;
 
+  const postfix = stream.getPostFix();
+  t.is(postfix, ':STREAM');
+
   await stream.add('reservations', {
     reference: '1',
     userReference: 'testorino',

@@ -10,6 +10,10 @@ class Stream {
     this.CONNECTOR = ':';
   }
 
+  getPostFix() {
+    return `${this.CONNECTOR}${this.POSTFIX}`;
+  }
+
   formatResponse(response, schema) {
     const flattenSchema = schema
       ? flatten(schema, { delimiter: this.FLAT_DELIMITER })

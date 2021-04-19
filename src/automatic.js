@@ -7,6 +7,8 @@ const getObjectKey = (key, field) => `${key}:${field.toUpperCase()}`;
 
 const getArrayKey = (key, field) => `${key}:${field.toUpperCase()}`;
 
+const validateSchema = (schema) => schema !== undefined && schema !== null;
+
 export default class Automatic {
   constructor(redis, schema, withPostFix) {
     this.redis = redis;
@@ -73,9 +75,18 @@ export default class Automatic {
           break;
         case 'object':
           if (Array.isArray(value)) {
-            if (value.every(({ value: element, score }) => typeof element === 'string' && typeof score === 'number')) newSchema[field] = 'arrayWeighted';
-            else if (value.every((element) => typeof element === 'string' || typeof element === 'number')) newSchema[field] = 'array';
-            else throw new Error(`Currently only arrays of strings, numbers and {value,score} objects are supported for field: ${field}`);
+            if (value.every(
+              ({ value: element, score }) => typeof element === 'string' && typeof score === 'number',
+            )
+            ) newSchema[field] = 'arrayWeighted';
+            else if (value.every(
+              (element) => typeof element === 'string' || typeof element === 'number',
+            )
+            ) newSchema[field] = 'array';
+            else if (value.every(
+              (element) => typeof element === 'object' && element.constructor.name === 'Object',
+            )) newSchema[field] = this.generateSchema(value);
+            else throw new Error(`Currently only arrays of strings, numbers, {value,score} and objects are supported for field: ${field}`);
             break;
           }
           if (Object.keys(value).length === 0) throw new Error(`Empty objects are not currently supported for field: ${field}`);
@@ -89,10 +100,10 @@ export default class Automatic {
     return newSchema;
   }
 
-  setSchema(values) {
-    const newSchema = this.generateSchema(values);
-    this.schema = newSchema;
-    return newSchema;
+  setSchema(schema) {
+    if (!validateSchema(schema)) throw new Error('Invalid Schema');
+    this.schema = schema;
+    return schema;
   }
 
   getSchema() {
