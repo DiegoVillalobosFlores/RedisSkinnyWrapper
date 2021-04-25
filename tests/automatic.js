@@ -19,6 +19,7 @@ test.before((t) => {
   t.context.client = redis;
   t.context.automatic = automatic;
   t.context.keys = [
+    'test',
     'test:METRICS:ZSET',
     'test:DBS:REDIS:HASH',
     'test:DBS:HASH',
@@ -35,7 +36,7 @@ test.before((t) => {
   ];
 });
 
-test.after(async (t) => {
+test.afterEach(async (t) => {
   const { client, keys } = t.context;
   await client.del(keys);
 });

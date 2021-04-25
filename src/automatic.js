@@ -5,7 +5,7 @@ const formatKey = (key, withPostFix, dataStructure) => (withPostFix ? `${key}${d
 
 const getObjectKey = (key, field) => `${key}:${field.toUpperCase()}`;
 
-const getArrayKey = (key, field) => `${key}:${field.toUpperCase()}`;
+const getArrayKey = (key, field, index) => `${key}:${field.toUpperCase()}${index !== undefined && index !== null ? `:${index}` : ''}`;
 
 const validateSchema = (schema) => schema !== undefined && schema !== null;
 
@@ -17,8 +17,15 @@ export default class Automatic {
     const hash = new Hash(redis);
     const sortedSet = new SortedSet(redis);
 
+    this.conversionFunctions = {
+      int: (value) => parseInt(value, 10),
+      string: (value) => value,
+      float: (value) => parseFloat(value),
+      boolean: (value) => value === 'true',
+    };
+
     this.schemaMapGet = {
-      hash: (key) => hash.getAll(formatKey(key, withPostFix, hash)),
+      hash: (key, fields) => hash.get(formatKey(key, withPostFix, hash), fields),
       arrayWeighted: (key) => sortedSet.range(formatKey(key, withPostFix, sortedSet), true),
       array: (key) => sortedSet.range(
         formatKey(key, withPostFix, sortedSet),
@@ -85,8 +92,9 @@ export default class Automatic {
             ) newSchema[field] = 'array';
             else if (value.every(
               (element) => typeof element === 'object' && element.constructor.name === 'Object',
-            )) newSchema[field] = this.generateSchema(value);
-            else throw new Error(`Currently only arrays of strings, numbers, {value,score} and objects are supported for field: ${field}`);
+            )) {
+              newSchema[field] = value.map((arrayElement) => this.generateSchema(arrayElement));
+            } else throw new Error(`Currently only arrays of strings, numbers, {value,score} and objects are supported for field: ${field}`);
             break;
           }
           if (Object.keys(value).length === 0) throw new Error(`Empty objects are not currently supported for field: ${field}`);
@@ -122,10 +130,23 @@ export default class Automatic {
       if (!type) throw new Error(`Field ${field} is not in the schema or its type is different, expected: ${this.schema[field]}, got: ${actualType}`);
 
       if (typeof type === 'object') {
-        promises = [
-          ...promises,
-          ...this.saveObject(getObjectKey(key, field), value, schema[field]),
-        ];
+        if (Array.isArray(value)) {
+          promises = [...promises, ...value.reduce(
+            (acc, arrayElement, index) => [
+              ...acc,
+              ...this.saveObject(
+                getArrayKey(key, field, index),
+                arrayElement,
+                schema[field][index],
+              )], [],
+          ),
+          ];
+        } else {
+          promises = [
+            ...promises,
+            ...this.saveObject(getObjectKey(key, field), value, schema[field]),
+          ];
+        }
       } else {
         const setter = this.schemaMapSet[type](key, field, value);
         if (Array.isArray(setter)) promises = [...promises, ...setter];
@@ -138,53 +159,43 @@ export default class Automatic {
 
   async getObject(key, schema) {
     let result = {};
-    const values = Object.entries(schema).filter(([, value]) => typeof value === 'string');
 
-    let hashValue = false;
+    const values = Object.entries(schema);
+
+    const hashValues = ['string', 'int', 'float', 'boolean'];
+    const arrayValues = ['array', 'arrayWeighted'];
+
+    const hashFields = [];
     for (let i = 0; i < values.length; i += 1) {
       const [field, value] = values[i];
-      switch (value) {
-        case 'array':
-          // eslint-disable-next-line no-await-in-loop
-          result[field] = await this.schemaMapGet.array(getArrayKey(key, field));
-          break;
-        case 'arrayWeighted':
-          // eslint-disable-next-line no-await-in-loop
-          result[field] = await this.schemaMapGet.arrayWeighted(getArrayKey(key, field));
-          break;
-        default:
-          hashValue = true;
+
+      if (hashValues.includes(schema[field])) {
+        hashFields.push(field);
+      } else if (arrayValues.includes(schema[field])) {
+        const arrayKey = getArrayKey(key, field);
+        result[field] = await this.schemaMapGet[value](arrayKey);
+      } else if (Array.isArray(schema[field])) {
+        result[field] = await Promise.all(value.map(
+          (arrayElement, index) => this.getObject(getArrayKey(key, field, index), arrayElement),
+        ));
+      } else if (typeof schema[field] === 'object') {
+        const objectKey = getObjectKey(key, field);
+        result[field] = await this.getObject(objectKey, value);
       }
     }
 
-    if (hashValue) {
-      const hashResult = await this.schemaMapGet.hash(key);
-      result = Object.entries(hashResult).reduce((acc, [field, value]) => {
-        switch (schema[field]) {
-          case 'int':
-            acc[field] = parseInt(value, 10);
-            break;
-          case 'float':
-            acc[field] = parseFloat(value);
-            break;
-          case 'boolean':
-            acc[field] = value === 'true';
-            break;
-          default:
-            if (schema[field]) acc[field] = value;
-        }
-        return acc;
-      }, result);
-    }
-
-    const objects = Object.entries(schema).filter(
-      ([, value]) => typeof value === 'object',
-    );
-
-    for (let i = 0; i < objects.length; i += 1) {
-      const [field, objectSchema] = objects[i];
-      // eslint-disable-next-line no-await-in-loop
-      result[field] = await this.getObject(getObjectKey(key, field), objectSchema);
+    if (hashFields.length > 0) {
+      const hashResult = await this.schemaMapGet.hash(key, hashFields);
+      result = {
+        ...result,
+        ...hashFields.reduce(
+          (acc, hashField, index) => (
+            {
+              ...acc,
+              [hashField]: this.conversionFunctions[schema[hashField]](hashResult[index]),
+            }), {},
+        ),
+      };
     }
 
     return result;
